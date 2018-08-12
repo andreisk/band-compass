@@ -10,7 +10,8 @@ body = dashboardBody(
               sidebarLayout(
                 sidebarPanel(
                   helpText("Right-click on the table to delete/insert rows/columns.", 
-                           "Double-click on a cell to edit."),
+                           "Double-click on a cell to edit.",
+                           "Table must have more columns than rows to run principal components analysis."),
                   br(),
                   actionButton("save", "Save table/update plots")
                 ),
@@ -29,8 +30,10 @@ body = dashboardBody(
     ,
     tabItem(tabName = 'pca',
             fluidRow(
-              box(title = 'Biplot'),
-              box(title = 'Component Loadings')
+              box(title = 'Biplot',
+                  plotOutput('biplot')),
+              box(title = 'Component Loadings',
+                  verbatimTextOutput('loadings'))
             ))
   )
 )
@@ -74,6 +77,7 @@ server = function(input, output){
   observeEvent(input$save, {
     #save
     finaldf <- isolate(values[['df']])
+    rownames(finaldf) = finaldf[,1]
     saveRDS(finaldf, 'bands.RDS')
     #compass plots
     output$comps = renderUI({
@@ -106,8 +110,15 @@ server = function(input, output){
       })
     })
     #pca plots
-    #output$biplot
-    #output$loadings
+    if(dim(finaldf)[1] > dim(finaldf)[2]-1){
+      pc = princomp(finaldf[,-1]) #cor=F as items are already on the same scale
+      output$biplot = renderPlot({
+        biplot(pc)
+      })
+      output$loadings = renderPrint({
+        pc$loadings[,1:2]
+      })
+    }
   }
     )
 }
