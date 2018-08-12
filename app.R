@@ -77,8 +77,8 @@ server = function(input, output){
   observeEvent(input$save, {
     #save
     finaldf <- isolate(values[['df']])
-    rownames(finaldf) = finaldf[,1]
     saveRDS(finaldf, 'bands.RDS')
+    rownames(finaldf) = finaldf[,1]
     #compass plots
     output$comps = renderUI({
       lapply(2:dim(values[['df']])[2]-1,function(i){
