@@ -2,6 +2,7 @@ library(shiny)
 library(shinydashboard)
 library(rhandsontable)
 library(ggplot2)
+library(aws.s3)
 
 body = dashboardBody(
   tabItems(
@@ -70,7 +71,7 @@ server = function(input, output){
   output$hot <- renderRHandsontable({
     df <- values[['df']]
     if (!is.null(df))
-      rhandsontable(df, useTypes = FALSE, stretchH = "all")
+      rhandsontable(df, rowHeaders = F, useTypes = FALSE, stretchH = "all")
   })
   
   # save/update/generate plots
@@ -78,14 +79,13 @@ server = function(input, output){
     #save
     finaldf <- isolate(values[['df']])
     saveRDS(finaldf, 'bands.RDS')
-    rownames(finaldf) = finaldf[,1]
     #compass plots
     output$comps = renderUI({
-      lapply(2:dim(values[['df']])[2]-1,function(i){
+      lapply(2:(dim(values[['df']])[2]-1),function(i){
         output[[paste0('comp',i)]] = renderPlot({
           ggplot(finaldf,
-                 aes(as.numeric(finaldf[,i]),
-                     as.numeric(finaldf[,i+1]),
+                 aes(finaldf[,i],
+                     finaldf[,i+1],
                      label=finaldf[,1])) + 
             xlim(0,10) + 
             ylim(0,10) + 
@@ -111,7 +111,9 @@ server = function(input, output){
     })
     #pca plots
     if(dim(finaldf)[1] > dim(finaldf)[2]-1){
-      pc = princomp(finaldf[,-1]) #cor=F as items are already on the same scale
+      finaldf2 = apply(finaldf[,-1],2,as.numeric)
+      rownames(finaldf2) = finaldf[,1]
+      pc = princomp(finaldf2) #cor=F as items are already on the same scale
       output$biplot = renderPlot({
         biplot(pc)
       })
